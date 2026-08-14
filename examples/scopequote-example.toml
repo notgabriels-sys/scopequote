@@ -1,0 +1,35 @@
+[quote]
+title = "Example creative-service quote"
+client = "Example Client"
+project = "Example EP"
+reference = "EXAMPLE-QUOTE-001"
+currency = "EUR"
+pricing_basis = "Fictional local quote declarations for review only; rates, tax treatment, agreement, delivery, and payment must be confirmed separately."
+amount_note = "Tax treatment, agreement, delivery, and payment must be confirmed separately."
+state = "draft"
+
+[deposit]
+amount_cents = 30000
+terms = "Fictional proposed booking deposit for local review only."
+
+[[items]]
+position = 1
+id = "mixing"
+service = "Fictional stereo mix"
+quantity = 2
+unit = "track"
+unit_price_cents = 30000
+discount_cents = 0
+included_revisions = 2
+scope_note = "Fictional scope note."
+
+[[items]]
+position = 2
+id = "mastering"
+service = "Fictional stereo master"
+quantity = 2
+unit = "track"
+unit_price_cents = 10000
+discount_cents = 2000
+included_revisions = 1
+scope_note = "Fictional scope note."
