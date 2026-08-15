@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 from dataclasses import dataclass
+from html import escape
 from pathlib import Path
 
 from scopequote.config import QuoteSpec
@@ -32,6 +33,12 @@ def markdown_cell(value: object) -> str:
     """Keep user declarations within one predictable Markdown table cell."""
 
     return str(value).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+
+
+def html_text(value: object) -> str:
+    """Render one declared value as text rather than browser-interpreted markup."""
+
+    return escape(str(value), quote=True)
 
 
 def quote_label(status: str) -> str:
@@ -161,6 +168,260 @@ def render_client_summary(spec: QuoteSpec, assessment: Assessment) -> str:
     return "\n".join(lines)
 
 
+def render_html(spec: QuoteSpec, assessment: Assessment) -> str:
+    """Render a self-contained, unsent local quote-review document for a browser."""
+
+    calculations = calculated_line_by_id(assessment)
+    rows = []
+    for item in spec.items:
+        calculation = calculations[item.id]
+        unit_price = html_text(format_cents(spec.quote.currency, item.unit_price_cents))
+        discount = html_text(format_cents(spec.quote.currency, item.discount_cents))
+        line_total = html_text(format_cents(spec.quote.currency, calculation.total_cents))
+        rows.append(
+            "\n".join(
+                [
+                    "      <tr>",
+                    f'        <td class="numeric">{html_text(item.position)}</td>',
+                    f"        <td>{html_text(item.service)}</td>",
+                    f'        <td class="numeric">{html_text(item.quantity)}</td>',
+                    f"        <td>{html_text(item.unit)}</td>",
+                    f'        <td class="numeric">{unit_price}</td>',
+                    f'        <td class="numeric">{discount}</td>',
+                    f'        <td class="numeric">{line_total}</td>',
+                    f'        <td class="numeric">{html_text(item.included_revisions)}</td>',
+                    f"        <td>{html_text(item.scope_note)}</td>",
+                    "      </tr>",
+                ]
+            )
+        )
+    rendered_rows = "\n".join(rows)
+    currency = spec.quote.currency
+    return f"""<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+  <title>{html_text(spec.quote.title)} — quote draft</title>
+  <style>
+    :root {{
+      color: #202124;
+      background: #f4f2ed;
+      font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;
+    }}
+
+    * {{ box-sizing: border-box; }}
+
+    body {{
+      margin: 0;
+      background: #f4f2ed;
+      line-height: 1.45;
+    }}
+
+    main {{
+      width: min(100% - 2rem, 68rem);
+      margin: 2rem auto;
+      padding: clamp(1.5rem, 4vw, 4rem);
+      background: #ffffff;
+      box-shadow: 0 0.8rem 3rem rgb(24 28 32 / 12%);
+    }}
+
+    h1, h2, p {{ margin: 0; }}
+
+    h1 {{
+      max-width: 32rem;
+      font-size: clamp(2rem, 5vw, 4.25rem);
+      line-height: 1;
+      letter-spacing: -0.05em;
+    }}
+
+    h2 {{
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }}
+
+    .eyebrow, .status {{
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }}
+
+    .eyebrow {{ color: #675b4b; }}
+
+    .status {{
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 0.4rem 0.55rem;
+      color: #ffffff;
+      background: #202124;
+    }}
+
+    .metadata, .totals {{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem 2rem;
+      margin-top: 2.5rem;
+    }}
+
+    .metadata div, .totals div {{ border-top: 1px solid #d9d7d0; padding-top: 0.45rem; }}
+
+    dt {{
+      color: #675b4b;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }}
+
+    dd {{ margin: 0.15rem 0 0; font-weight: 600; }}
+
+    section {{ margin-top: 3rem; }}
+
+    table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; }}
+
+    th, td {{ padding: 0.65rem 0.45rem; border-bottom: 1px solid #d9d7d0; text-align: left; }}
+
+    th {{
+      color: #675b4b;
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      vertical-align: bottom;
+    }}
+
+    .numeric {{ text-align: right; white-space: nowrap; }}
+
+    .totals {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
+
+    .total {{ color: #202124; font-size: 1.2rem; }}
+
+    .prose {{ max-width: 48rem; white-space: pre-wrap; }}
+
+    footer {{
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #202124;
+      font-size: 0.82rem;
+    }}
+
+    @media (max-width: 44rem) {{
+      main {{ width: 100%; margin: 0; box-shadow: none; }}
+      .metadata, .totals {{ grid-template-columns: 1fr; }}
+      table {{ display: block; overflow-x: auto; }}
+    }}
+
+    @media print {{
+      :root, body {{ background: #ffffff; }}
+      main {{ width: auto; margin: 0; padding: 0; box-shadow: none; }}
+      table {{ font-size: 8pt; }}
+      th, td {{ padding: 0.3rem 0.2rem; }}
+      section, tr {{ break-inside: avoid; }}
+    }}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class=\"eyebrow\">Local client-review document</p>
+      <h1>{html_text(spec.quote.title)}</h1>
+      <p class=\"status\">QUOTE DRAFT — NOT SENT</p>
+      <dl class=\"metadata\">
+        <div>
+          <dt>Declared state</dt>
+          <dd>{html_text(quote_label(assessment.status))}</dd>
+        </div>
+        <div>
+          <dt>Reference</dt>
+          <dd>{html_text(spec.quote.reference)}</dd>
+        </div>
+        <div>
+          <dt>Client</dt>
+          <dd>{html_text(spec.quote.client)}</dd>
+        </div>
+        <div>
+          <dt>Project</dt>
+          <dd>{html_text(spec.quote.project)}</dd>
+        </div>
+      </dl>
+    </header>
+
+    <section>
+      <h2>Declared scope and line items</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Service</th>
+            <th class=\"numeric\">Quantity</th>
+            <th>Unit</th>
+            <th class=\"numeric\">Unit price</th>
+            <th class=\"numeric\">Discount</th>
+            <th class=\"numeric\">Line total</th>
+            <th class=\"numeric\">Included revisions</th>
+            <th>Scope note</th>
+          </tr>
+        </thead>
+        <tbody>
+{rendered_rows}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Exact declared totals</h2>
+      <dl class=\"totals\">
+        <div>
+          <dt>Subtotal</dt>
+          <dd>{html_text(format_cents(currency, assessment.subtotal_cents))}</dd>
+        </div>
+        <div>
+          <dt>Explicit discounts</dt>
+          <dd>{html_text(format_cents(currency, assessment.discount_cents))}</dd>
+        </div>
+        <div>
+          <dt>Quote total</dt>
+          <dd class=\"total\">{html_text(format_cents(currency, assessment.total_cents))}</dd>
+        </div>
+        <div>
+          <dt>Proposed deposit</dt>
+          <dd>{html_text(format_cents(currency, assessment.deposit_cents))}</dd>
+        </div>
+        <div>
+          <dt>Balance after proposed deposit</dt>
+          <dd>{html_text(format_cents(currency, assessment.balance_cents))}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section>
+      <h2>Pricing basis</h2>
+      <p class=\"prose\">{html_text(spec.quote.pricing_basis)}</p>
+    </section>
+
+    <section>
+      <h2>Amount note</h2>
+      <p class=\"prose\">{html_text(spec.quote.amount_note)}</p>
+    </section>
+
+    <section>
+      <h2>Proposed deposit terms</h2>
+      <p class=\"prose\">{html_text(spec.deposit.terms)}</p>
+    </section>
+
+    <footer>
+      This is a local human-declared draft. It has not been sent or accepted, and is not an
+      invoice, contract, payment record, tax calculation, booking confirmation, delivery
+      confirmation, or proof that a client reviewed, accepted, or paid anything.
+    </footer>
+  </main>
+</body>
+</html>
+"""
+
+
 def quote_items_csv(spec: QuoteSpec, assessment: Assessment) -> str:
     """Return all declared scope and calculated exact-cent item data in a portable CSV table."""
 
@@ -216,12 +477,14 @@ def write_bundle(spec: QuoteSpec, assessment: Assessment, output_path: Path) -> 
     output_path.mkdir(parents=True)
 
     markdown_path = output_path / "QUOTE_DRAFT.md"
+    html_path = output_path / "QUOTE_DRAFT.html"
     csv_path = output_path / "quote-items.csv"
     summary_path = output_path / "client-summary.txt"
     markdown_path.write_text(render_markdown(spec, assessment), encoding="utf-8")
+    html_path.write_text(render_html(spec, assessment), encoding="utf-8")
     csv_path.write_text(quote_items_csv(spec, assessment), encoding="utf-8")
     summary_path.write_text(render_client_summary(spec, assessment), encoding="utf-8")
-    files = (markdown_path, csv_path, summary_path)
+    files = (markdown_path, html_path, csv_path, summary_path)
     manifest_path = output_path / "manifest.json"
     manifest_path.write_text(
         json.dumps(
