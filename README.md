@@ -108,9 +108,15 @@ or payment terms. Keep any rate or tax decision separate from the tool’s arith
 `build` writes:
 
 - `QUOTE_DRAFT.md` — readable declared scope, exact arithmetic, basis, terms, and boundary
+- `QUOTE_DRAFT.html` — self-contained local browser-review view with the same declared scope,
+  exact arithmetic, and visible `QUOTE DRAFT — NOT SENT` state
 - `quote-items.csv` — all declared item fields plus calculated fixed-cent totals
 - `client-summary.txt` — clearly marked `QUOTE DRAFT - NOT SENT` text for human adaptation
-- `manifest.json` — SHA-256 hashes and byte counts for the three generated content files
+- `manifest.json` — SHA-256 hashes and byte counts for the four generated content files
+
+Open `QUOTE_DRAFT.html` locally in a browser when a clean review or print layout is useful. Any
+browser print/PDF action is initiated by you; Scopequote does not generate a PDF, send a quote,
+or open a client-facing service.
 
 The manifest records only the declared quote values and generated-artifact hashes; it does
 not include the local input path, email, bank/payment data, invoice, contract, acceptance, or

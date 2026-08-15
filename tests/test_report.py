@@ -1,5 +1,6 @@
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -63,22 +64,72 @@ def test_renders_exact_totals_and_non_agreement_scope_boundary() -> None:
     assert "does not send the quote, create an invoice, or establish an agreement" in rendered
 
 
+def test_renders_printable_html_draft_and_escapes_declared_text() -> None:
+    spec = example_spec()
+    hostile_spec = replace(
+        spec,
+        quote=replace(
+            spec.quote,
+            title='<script>alert("title")</script>',
+            client="Client & <review>",
+            project="Project <draft>",
+            reference="REF & <001>",
+            pricing_basis="Basis & <human review>",
+            amount_note="Amount & <confirmation>",
+        ),
+        deposit=replace(spec.deposit, terms="Terms & <confirmation>"),
+        items=(
+            replace(
+                spec.items[0],
+                service="Mix & <script>",
+                unit="track <unit>",
+                scope_note="Scope & <review>",
+            ),
+            *spec.items[1:],
+        ),
+    )
+
+    rendered = report.render_html(hostile_spec, service.assess(hostile_spec))
+    rendered_text = " ".join(rendered.split())
+
+    assert "<!doctype html>" in rendered.lower()
+    assert "QUOTE DRAFT — NOT SENT" in rendered
+    assert "EUR 780.00" in rendered
+    assert "not an invoice, contract, payment record" in rendered_text
+    assert "&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt;" in rendered
+    assert "Client &amp; &lt;review&gt;" in rendered
+    assert "Mix &amp; &lt;script&gt;" in rendered
+    assert "Terms &amp; &lt;confirmation&gt;" in rendered
+    assert '<script>alert("title")</script>' not in rendered
+    assert "<script" not in rendered
+
+
 def test_writes_hashed_quote_bundle_without_overwriting(tmp_path: Path) -> None:
     output = tmp_path / "quote"
     bundle = report.write_bundle(example_spec(), service.assess(example_spec()), output)
 
     assert {path.name for path in bundle.files} == {
         "QUOTE_DRAFT.md",
+        "QUOTE_DRAFT.html",
         "client-summary.txt",
         "quote-items.csv",
     }
     assert "Fictional stereo master" in (output / "quote-items.csv").read_text(encoding="utf-8")
     assert "QUOTE DRAFT - NOT SENT" in (output / "client-summary.txt").read_text(encoding="utf-8")
+    html_draft = (output / "QUOTE_DRAFT.html").read_text(encoding="utf-8")
+    assert "QUOTE DRAFT — NOT SENT" in html_draft
+    assert "not an invoice, contract, payment record" in " ".join(html_draft.split())
     manifest = json.loads(bundle.manifest_path.read_text(encoding="utf-8"))
     assert manifest["total_cents"] == 78000
+    manifest_files = {entry["path"]: entry for entry in manifest["files"]}
+    assert set(manifest_files) == {path.name for path in bundle.files}
     assert (
-        manifest["files"][0]["sha256"]
+        manifest_files["QUOTE_DRAFT.md"]["sha256"]
         == hashlib.sha256((output / "QUOTE_DRAFT.md").read_bytes()).hexdigest()
+    )
+    assert (
+        manifest_files["QUOTE_DRAFT.html"]["sha256"]
+        == hashlib.sha256((output / "QUOTE_DRAFT.html").read_bytes()).hexdigest()
     )
     assert str(tmp_path) not in bundle.manifest_path.read_text(encoding="utf-8")
 
