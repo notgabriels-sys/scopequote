@@ -1,8 +1,31 @@
+import hashlib
+import json
+from dataclasses import replace
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
 
 from scopequote import amendment, config
+
+
+class PassiveHtmlParser(HTMLParser):
+    """Record active HTML elements and attributes that an offline brief must not contain."""
+
+    forbidden_tags = {"a", "base", "embed", "form", "iframe", "img", "link", "object", "script"}
+    forbidden_attributes = {"href", "onclick", "onerror", "src"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.active_tags: list[str] = []
+        self.active_attributes: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in self.forbidden_tags:
+            self.active_tags.append(tag)
+        self.active_attributes.extend(
+            name for name, _ in attrs if name in self.forbidden_attributes
+        )
 
 
 def example_toml(state: str = "draft") -> str:
@@ -140,3 +163,94 @@ def test_rejects_invalid_declared_scope_change_values(tmp_path: Path) -> None:
         amendment.load_spec(write_spec(tmp_path, position_gap))
     with pytest.raises(ValueError, match=discount_error):
         amendment.load_spec(write_spec(tmp_path, excessive_discount))
+
+
+def test_renders_exact_additive_totals_and_local_only_boundary() -> None:
+    rendered = amendment.render_markdown(example_spec(), amendment.assess(example_spec()))
+
+    assert "# Example additional-work scope change" in rendered
+    assert "DECLARED SCOPE CHANGE DRAFT" in rendered
+    assert "Declared prior quote total: EUR 780.00" in rendered
+    assert "Proposed added-work total: EUR 430.00" in rendered
+    assert "Revised declared total: EUR 1210.00" in rendered
+    assert "does not establish an agreement" in rendered
+
+
+def test_html_escapes_declared_text_and_has_no_active_elements() -> None:
+    spec = example_spec()
+    hostile = replace(
+        spec,
+        amendment=replace(
+            spec.amendment,
+            title='<script>alert("title")</script>',
+            client="Client & <review>",
+            project="Project <draft>",
+            reference="CHANGE & <001>",
+            source_quote_reference="QUOTE & <001>",
+            request_summary="Request & <review>",
+            pricing_basis="Basis & <human review>",
+            amount_note="Amount & <confirmation>",
+            confirmation_note="Confirm & <response>",
+        ),
+        items=(
+            replace(
+                spec.items[0],
+                id="change & <id>",
+                service="Mix & <script>",
+                unit="recall <unit>",
+                scope_note="Scope & <review>",
+            ),
+            *spec.items[1:],
+        ),
+    )
+
+    rendered = amendment.render_html(hostile, amendment.assess(hostile))
+    parser = PassiveHtmlParser()
+    parser.feed(rendered)
+
+    assert "<!doctype html>" in rendered.lower()
+    assert "SCOPE CHANGE DRAFT - NOT SENT" in rendered
+    assert "EUR 1210.00" in rendered
+    assert "not an invoice, contract, payment record" in " ".join(rendered.split())
+    assert "&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt;" in rendered
+    assert "Client &amp; &lt;review&gt;" in rendered
+    assert "change &amp; &lt;id&gt;" in rendered
+    assert "Confirm &amp; &lt;response&gt;" in rendered
+    assert '<script>alert("title")</script>' not in rendered
+    assert parser.active_tags == []
+    assert parser.active_attributes == []
+
+
+def test_writes_hashed_scope_change_bundle_without_overwriting(tmp_path: Path) -> None:
+    output = tmp_path / "scope-change"
+    bundle = amendment.write_bundle(example_spec(), amendment.assess(example_spec()), output)
+
+    assert {path.name for path in bundle.files} == {
+        "SCOPE_CHANGE_DRAFT.md",
+        "SCOPE_CHANGE_DRAFT.html",
+        "client-summary.txt",
+        "scope-change-items.csv",
+    }
+    assert "Fictional additional stem preparation" in (output / "scope-change-items.csv").read_text(
+        encoding="utf-8"
+    )
+    assert "SCOPE CHANGE DRAFT - NOT SENT" in (output / "client-summary.txt").read_text(
+        encoding="utf-8"
+    )
+    html_draft = (output / "SCOPE_CHANGE_DRAFT.html").read_text(encoding="utf-8")
+    assert "SCOPE CHANGE DRAFT - NOT SENT" in html_draft
+    assert "not an invoice, contract, payment record" in " ".join(html_draft.split())
+
+    manifest = json.loads(bundle.manifest_path.read_text(encoding="utf-8"))
+    assert manifest["source_quote_reference"] == "EXAMPLE-QUOTE-001"
+    assert manifest["prior_total_cents"] == 78000
+    assert manifest["change_total_cents"] == 43000
+    assert manifest["revised_total_cents"] == 121000
+    manifest_files = {entry["path"]: entry for entry in manifest["files"]}
+    assert set(manifest_files) == {path.name for path in bundle.files}
+    for path in bundle.files:
+        assert manifest_files[path.name]["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert str(tmp_path) not in bundle.manifest_path.read_text(encoding="utf-8")
+
+    with pytest.raises(FileExistsError, match="output directory already exists"):
+        amendment.write_bundle(example_spec(), amendment.assess(example_spec()), output)
