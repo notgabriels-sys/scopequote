@@ -63,7 +63,7 @@ subtotal. Name the assertions after the specific ValueError messages.
 
 - [ ] **Step 2: Run the focused tests and verify they fail**
 
-Run: uv run pytest tests/test_amendment.py -q  
+Run: uv run pytest tests/test_amendment.py -q
 Expected: collection failure because scopequote.amendment does not yet exist.
 
 - [ ] **Step 3: Implement the minimal immutable model and parser**
@@ -102,7 +102,7 @@ declared prior total to the calculated additive change total.
 
 - [ ] **Step 4: Run the focused tests and verify they pass**
 
-Run: uv run pytest tests/test_amendment.py -q  
+Run: uv run pytest tests/test_amendment.py -q
 Expected: the model, parser, validation, and exact-cent assertions pass.
 
 - [ ] **Step 5: Commit the model and its tests**
@@ -152,7 +152,7 @@ verifies every manifest hash, and verifies the manifest omits the temporary outp
 
 - [ ] **Step 2: Run the focused tests and verify they fail**
 
-Run: uv run pytest tests/test_amendment.py -q  
+Run: uv run pytest tests/test_amendment.py -q
 Expected: render_html and write_bundle are missing or the expected output files are absent.
 
 - [ ] **Step 3: Implement static renderers and the fresh-output writer**
@@ -173,7 +173,7 @@ CSS only; apply html.escape(..., quote=True) to every dynamic text value.
 
 - [ ] **Step 4: Run the focused tests and verify they pass**
 
-Run: uv run pytest tests/test_amendment.py -q  
+Run: uv run pytest tests/test_amendment.py -q
 Expected: rendered values, hostile-data safety, manifest evidence, and non-overwrite behavior pass.
 
 - [ ] **Step 5: Commit the renderer and bundle behavior**
@@ -218,7 +218,7 @@ the existing output path with 1.
 
 - [ ] **Step 2: Run the focused CLI tests and verify they fail**
 
-Run: uv run pytest tests/test_cli.py -q  
+Run: uv run pytest tests/test_cli.py -q
 Expected: argparse rejects the unimplemented amend command.
 
 - [ ] **Step 3: Add nested amend subcommands and concise status output**
@@ -239,7 +239,7 @@ amendment to an earlier quote. Do not use actual pricing, client, project, or co
 
 - [ ] **Step 5: Run CLI and complete regression tests**
 
-Run: uv run pytest tests/test_cli.py -q && uv run pytest -q  
+Run: uv run pytest tests/test_cli.py -q && uv run pytest -q
 Expected: amendment and original quote commands pass, with original quote behavior unchanged.
 
 - [ ] **Step 6: Commit the command and documentation**
@@ -295,4 +295,3 @@ Create a **draft** PR from codex/scopequote-change-control into codex/scopequote
 summarize the capability, deliberate no-claim boundary, local checks, wheel smoke test, and security
 review. Do not merge, mark ready, publish a package, or claim client acceptance, income, payment,
 or adoption.
-

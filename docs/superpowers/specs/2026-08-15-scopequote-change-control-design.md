@@ -1,6 +1,6 @@
 # Scopequote scope-change amendment - design
 
-**Date:** 2026-08-15  
+**Date:** 2026-08-15
 **Status:** Approved through Gabriel's standing instruction to continue building useful GitHub tools autonomously.
 
 ## Problem
