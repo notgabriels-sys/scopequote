@@ -134,15 +134,15 @@ def test_html_escapes_all_declared_values_and_has_no_active_elements() -> None:
         amendment=replace(
             example_spec().amendment,
             title='<script>alert("title")</script>',
-            confirmation_note='Text & <review>',
+            confirmation_note="Text & <review>",
         ),
     )
 
     rendered = amendment.render_html(hostile, amendment.assess(hostile))
 
-    assert '&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt;' in rendered
-    assert '<script' not in rendered
-    assert 'Text &amp; &lt;review&gt;' in rendered
+    assert "&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt;" in rendered
+    assert "<script" not in rendered
+    assert "Text &amp; &lt;review&gt;" in rendered
 ~~~
 
 Add an HTMLParser assertion that rejects script, img, iframe, object, embed, link, base, form, and
