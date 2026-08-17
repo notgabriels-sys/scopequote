@@ -1,0 +1,35 @@
+[amendment]
+title = "Example additional-work scope change"
+client = "Example Client"
+project = "Example EP"
+reference = "EXAMPLE-CHANGE-001"
+source_quote_reference = "EXAMPLE-QUOTE-001"
+currency = "EUR"
+prior_total_cents = 78000
+request_summary = "Fictional additional recall work requested for local review only."
+pricing_basis = "Fictional local declaration; rates and terms need separate confirmation."
+amount_note = "Tax, delivery, agreement, and payment must be confirmed separately."
+confirmation_note = "A separate human confirmation remains required."
+state = "draft"
+
+[[change_items]]
+position = 1
+id = "additional-recall"
+service = "Fictional additional mix recall"
+quantity = 1
+unit = "recall"
+unit_price_cents = 15000
+discount_cents = 0
+included_revisions = 1
+scope_note = "Fictional added-work scope note."
+
+[[change_items]]
+position = 2
+id = "stem-delivery"
+service = "Fictional additional stem preparation"
+quantity = 2
+unit = "track"
+unit_price_cents = 15000
+discount_cents = 2000
+included_revisions = 0
+scope_note = "Fictional added-work delivery note."

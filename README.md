@@ -5,6 +5,11 @@ quote in exact integer cents. It is designed for the moment before a project is 
 you list the proposed services, quantities, fixed-cent prices, explicit discounts, and a
 proposed deposit; Scopequote checks the arithmetic and writes a readable local quote draft.
 
+When extra work is proposed later, its separate `amend` command writes a new additive
+scope-change draft rather than silently revising the original quote. It makes the declared
+earlier reference, prior total, additional work, and revised declared total visible for local
+human review.
+
 It is not a rate card, invoice system, tax calculator, payment tool, contract, booking
 system, email sender, or client portal. It never chooses a market rate, converts a
 currency, adds tax, sends a quote, asks for payment, or claims that a client accepted
@@ -29,6 +34,8 @@ requested or received.
 - exact subtotal, explicit discount total, quote total, proposed deposit, and balance
 - a proposed deposit that is not higher than the calculated quote total
 - an explicit human-declared quote state: `draft` or `reviewed`
+- for a separate amendment: a declared source-quote reference, declared prior total, additive
+  line items, proposed added-work total, and revised declared total
 
 All money arithmetic stays in integer cents. Scopequote rejects a declaration rather than
 inventing a rounding method.
@@ -63,6 +70,22 @@ scopequote build examples/scopequote-example.toml --output ./quote-draft
 `check` writes nothing. `build` creates a new directory and refuses to replace an existing
 path. It can create a draft bundle so the person preparing it can review it, but it remains
 clearly labelled as unsent.
+
+### Propose a declared scope change
+
+If additional work is proposed after an initial quote, start from
+[examples/scopequote-amendment-example.toml](examples/scopequote-amendment-example.toml). Its
+references, project, services, and amounts are fictional. The declared source-quote reference
+and prior total are not linked to, or verified against, an earlier Scopequote bundle.
+
+```bash
+scopequote amend check examples/scopequote-amendment-example.toml
+scopequote amend build examples/scopequote-amendment-example.toml --output ./scope-change-draft
+```
+
+`amend` is additive-only: it makes newly proposed work and its exact declared change total
+reviewable. It does not remove or credit work, revise an existing output folder, prove that an
+earlier quote exists, send anything, or establish that anyone agreed to the change.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -103,7 +126,7 @@ The currency field is a display label only. The amount note and deposit terms ar
 must write intentionally; Scopequote does not formulate or validate commercial, legal, tax,
 or payment terms. Keep any rate or tax decision separate from the tool’s arithmetic.
 
-## Output bundle
+## Initial-quote output bundle
 
 `build` writes:
 
@@ -121,6 +144,23 @@ or open a client-facing service.
 The manifest records only the declared quote values and generated-artifact hashes; it does
 not include the local input path, email, bank/payment data, invoice, contract, acceptance, or
 transfer record.
+
+## Scope-change output bundle
+
+`scopequote amend build` writes a separate fresh directory containing:
+
+- `SCOPE_CHANGE_DRAFT.md` — declared source reference, added work, exact totals, and boundary
+- `SCOPE_CHANGE_DRAFT.html` — self-contained local browser-review view with a visible
+  `SCOPE CHANGE DRAFT - NOT SENT` state
+- `scope-change-items.csv` — all declared additional-work item fields plus calculated totals
+- `client-summary.txt` — clearly marked unsent text for human adaptation
+- `manifest.json` — declared references/totals plus SHA-256 hashes and byte counts for the four
+  generated content files
+
+The amendment manifest records only declared references/totals and generated-artifact hashes. It
+does not contain a local input/output path, prove a source quote relationship, create an invoice,
+record payment, prove confirmation, or evidence any external action. Open the HTML file locally
+and use the browser's print command yourself if a print/PDF review is useful.
 
 ## Development
 
