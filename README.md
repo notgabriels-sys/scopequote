@@ -175,3 +175,12 @@ python -m build
 Scopequote has no runtime dependencies beyond Python 3.11 or newer. Its tests use fictional
 declarations only; they do not validate real pricing, tax treatment, agreements, invoices,
 clients, bookings, payments, or work.
+
+---
+
+<!-- funnel-footer -->
+Part of a set of small, offline, local-first tools — [see all of them](https://github.com/notgabriels-sys).
+
+Free and open source: [theme-contrast](https://github.com/notgabriels-sys/theme-contrast) (WCAG contrast checking for colour themes) · [htmlshot](https://github.com/notgabriels-sys/htmlshot) (HTML → exact-size PNG/PDF) · [50 dark themes for Claude Code](https://github.com/notgabriels-sys/claude-code-50-dark-themes).
+
+Dark templates for documents, decks and app screens — [live demos](https://notgabriels-sys.github.io/dark-templates-demo/).
